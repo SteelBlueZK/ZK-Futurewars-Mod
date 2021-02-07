@@ -103,6 +103,18 @@ for unitDefID, unitDef in pairs(UnitDefs) do
 	end
 end
 
+for i = 1, #UnitDefs do
+	local def = UnitDefs[i]
+	local weapons = def.weapons
+	for w = 1, #weapons do
+		local wep = weapons[w].weaponDef
+		if WeaponDefs[wep].shieldPower and WeaponDefs[wep].shieldPower > 0 and shields[i] == nil then
+			shields[i] = WeaponDefs[wep].shieldPower
+			--Spring.Echo("Added shield retreat to " .. i .. " ( has " .. tostring(WeaponDefs[wep].shieldPower) .. ")")
+		end
+	end
+end
+
 --------------------------------------------------------------------------------
 --------------------------------------------------------------------------------
 -- allow gadget:Save (unsynced) to reach them
@@ -375,14 +387,20 @@ local function CheckSetWantRetreat(unitID)
 	if not retreatState[unitID] or retreatState[unitID] == 0 then
 		return
 	end
-	
+	local shieldratio
+	if shields[spGetUnitDefID(unitID)] then
+		local _, currentcharge = spGetUnitShieldState(unitID)
+		shieldratio = currentcharge / shields[spGetUnitDefID(unitID)]
+	else
+		shieldratio = 1
+	end
 	local healthRatio = health / maxHealth
 	local threshold = thresholdMap[retreatState[unitID]]
 	local _,_,inBuild = spGetUnitIsStunned(unitID)
 
-	if (healthRatio < threshold or capture >= threshold) and (not inBuild) then
+	if (healthRatio < threshold or capture >= threshold or shieldratio < threshold) and (not inBuild) then
 		SetWantRetreat(unitID, true)
-	elseif healthRatio >= 1 and capture == 0 then
+	elseif healthRatio >= 1 and capture == 0 and shieldratio >= 1 then
 		SetWantRetreat(unitID, nil)
 	end
 end
