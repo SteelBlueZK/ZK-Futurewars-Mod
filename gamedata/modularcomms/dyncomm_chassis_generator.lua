@@ -1,39 +1,29 @@
 local chassisDefs = {
 	{
-		name = "dynstrike1", -- 22/31 (UPDATE ME AS YOU ADD MORE WEAPONS)
+		name = "dynstrike1", -- 16/31 (UPDATE ME AS YOU ADD MORE WEAPONS)
 		weapons = {
-			"commweapon_missilelauncher", -- 415 TODO: REMOVE
-			"commweapon_missilelauncher", -- 415 TODO: REMOVE
-			"commweapon_lparticlebeam",
 			"commweapon_shotgun", -- TODO: REPLACE
+			"commweapon_shotgun",
 			"commweapon_shotgun_disrupt",
-			"commweapon_disruptor", -- TODO: REMOVE
+			"commweapon_shotgun_disrupt",
 			"commweapon_heavymachinegun",
 			"commweapon_heavymachinegun_disrupt",
 			"commweapon_lightninggun",
 			"commweapon_lightninggun_improved",
-			"commweapon_lparticlebeam",
-			"commweapon_shotgun",
-			"commweapon_shotgun_disrupt",
-			"commweapon_disruptor",
 			"commweapon_heavymachinegun",
 			"commweapon_heavymachinegun_disrupt",
 			"commweapon_lightninggun",
 			"commweapon_lightninggun_improved",
 			"commweapon_multistunner",
 			"commweapon_multistunner_improved",
-			"commweapon_disruptorbomb",
 			"commweapon_disintegrator",
+			"commweapon_sunburst",
 			-- Space for shield
 		}
 	},
 	{
-		name = "dynrecon1", -- 20/31
+		name = "dynrecon1", -- 17/31
 		weapons = {
-			"commweapon_lparticlebeam", -- TODO: Remove
-			"commweapon_lparticlebeam",
-			"commweapon_disruptor", -- TODO: Remove
-			"commweapon_disruptor",
 			"commweapon_shotgun",
 			"commweapon_shotgun",
 			"commweapon_shotgun_disrupt",
@@ -46,7 +36,6 @@ local chassisDefs = {
 			"commweapon_heavymachinegun_disrupt",
 			"commweapon_napalmgrenade",
 			"commweapon_clusterbomb",
-			"commweapon_disruptorbomb",
 			"commweapon_concussion",
 			"commweapon_heatray",
 			"commweapon_heatray",
@@ -86,7 +75,7 @@ local chassisDefs = {
 		}
 	},
 	{
-		name = "dynassault1", --22/31
+		name = "dynassault1", --19/31
 		weapons = {
 			"commweapon_rocketlauncher", -- 430
 			"commweapon_rocketlauncher_napalm", -- 430
@@ -94,19 +83,16 @@ local chassisDefs = {
 			"commweapon_rocketlauncher_napalm", -- 430
 			"commweapon_canistercannon",
 			"commweapon_canistercannon",
-			"commweapon_heatray",
 			"commweapon_heavymachinegun",
 			"commweapon_flamethrower",
 			"commweapon_riotcannon",
 			"commweapon_riotcannon_napalm",
-			"commweapon_heatray",
 			"commweapon_heavymachinegun",
 			"commweapon_flamethrower",
 			"commweapon_riotcannon",
 			"commweapon_riotcannon_napalm",
 			"commweapon_hpartillery",
 			"commweapon_hpartillery_napalm",
-			"commweapon_disintegrator",
 			"commweapon_napalmgrenade",
 			"commweapon_slamrocket",
 			"commweapon_clusterbomb",
