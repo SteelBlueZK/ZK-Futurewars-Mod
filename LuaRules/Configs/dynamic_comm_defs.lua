@@ -805,7 +805,7 @@ local moduleDefs = {
 		limit = 1,
 		cost = 300 * COST_MULT,
 		prohibitingModules = {"module_personal_cloak", "module_jammer"},
-		requireChassis = {"support", "recon", "assault", "knight"},
+		requireChassis = {"support", "recon", "assault", "knight", "riot"},
 		requireLevel = 2,
 		slotType = "module",
 		applicationFunction = function (modules, sharedData)
@@ -836,7 +836,7 @@ local moduleDefs = {
 		image = moduleImagePath .. "weaponmod_napalm_warhead.png",
 		limit = 1,
 		cost = 350 * COST_MULT,
-		requireChassis = {"assault", "knight"},
+		requireChassis = {"assault", "knight", "riot"},
 		requireOneOf = {"commweapon_rocketlauncher", "commweapon_artillery_heavy", "commweapon_riotcannon"},
 		requireLevel = 2,
 		slotType = "module",
@@ -1140,7 +1140,7 @@ local moduleDefs = {
 		limit = 8,
 		cost = 200 * COST_MULT,
 		requireOneOf = {"module_ablative_armor"},
-		requireChassis = {"assault"},
+		requireChassis = {"riot"},
 		requireLevel = 2,
 		slotType = "module",
 		applicationFunction = function (modules, sharedData)
@@ -1800,6 +1800,289 @@ local chassisDefs = {
 		}
 	},
 	{
+		name = "riot",
+		humanName = "Battle",
+		baseUnitDef = UnitDefNames and UnitDefNames["dynriot0"].id,
+		extraLevelCostFunction = extraLevelCostFunction,
+		maxNormalLevel = 5,
+		secondPeashooter = true,
+		levelDefs = {
+			[0] = {
+				morphBuildPower = 10,
+				morphBaseCost = 0,
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 20
+					sharedData.damageMult = (sharedData.damageMult or 1) + 0.075
+					sharedData.healthBonus = (sharedData.healthBonus or 0) + 500
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynriot0"].id
+				end,
+				upgradeSlots = {},
+			},
+			[1] = {
+				morphBuildPower = 10,
+				morphBaseCost = morphCosts[1],
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 30
+					sharedData.damageMult = (sharedData.damageMult or 1) + 0.15
+					sharedData.healthBonus = (sharedData.healthBonus or 0) + 1000
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynriot1_" .. GetAssaultCloneModulesString(modulesByDefID)].id
+				end,
+				upgradeSlots = {
+					{
+						defaultModule = moduleDefNames.commweapon_beamlaser,
+						slotAllows = "basic_weapon",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+				},
+			},
+			[2] = {
+				morphBuildPower = 15,
+				morphBaseCost = morphCosts[2] * COST_MULT,
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 40
+					sharedData.damageMult = (sharedData.damageMult or 1) + 0.225
+					sharedData.healthBonus = (sharedData.healthBonus or 0) + 1500
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynriot2_" .. GetAssaultCloneModulesString(modulesByDefID)].id
+				end,
+				upgradeSlots = {
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+				},
+			},
+			[3] = {
+				morphBuildPower = 20,
+				morphBaseCost = morphCosts[3] * COST_MULT,
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 50
+					sharedData.damageMult = (sharedData.damageMult or 1) + 0.3
+					sharedData.healthBonus = (sharedData.healthBonus or 0) + 2000
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynriot3_" .. GetAssaultCloneModulesString(modulesByDefID)].id
+				end,
+				upgradeSlots = {
+					{
+						defaultModule = moduleDefNames.commweapon_beamlaser,
+						slotAllows = {"adv_weapon", "basic_weapon"},
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+				},
+			},
+			[4] = {
+				morphBuildPower = 25,
+				morphBaseCost = morphCosts[4] * COST_MULT,
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 60
+					sharedData.damageMult = (sharedData.damageMult or 1) + 0.375
+					sharedData.healthBonus = (sharedData.healthBonus or 0) + 2500
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynriot4_" .. GetAssaultCloneModulesString(modulesByDefID)].id
+				end,
+				upgradeSlots = {
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+				},
+			},
+			[5] = {
+				morphBuildPower = 30,
+				morphBaseCost = morphCosts[5] * COST_MULT,
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 70
+					sharedData.damageMult = (sharedData.damageMult or 1) + 0.45
+					sharedData.healthBonus = (sharedData.healthBonus or 0) + 30000
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynriot5_" .. GetAssaultCloneModulesString(modulesByDefID)].id
+				end,
+				upgradeSlots = {
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+				},
+			},
+		}
+	},
+	{
+		name = "assault",
+		humanName = "Bombard",
+		baseUnitDef = UnitDefNames and UnitDefNames["dynassault0"].id,
+		extraLevelCostFunction = extraLevelCostFunction,
+		maxNormalLevel = 5,
+		secondPeashooter = true,
+		levelDefs = {
+			[0] = {
+				morphBuildPower = 10,
+				morphBaseCost = 0,
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 5
+					sharedData.rangeMult = (sharedData.rangeMult or 1) + 0.075
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynassault0"].id
+				end,
+				upgradeSlots = {},
+			},
+			[1] = {
+				morphBuildPower = 10,
+				morphBaseCost = morphCosts[1],
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 5
+					sharedData.rangeMult = (sharedData.rangeMult or 1) + 0.15
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynassault1_" .. GetAssaultCloneModulesString(modulesByDefID)].id
+				end,
+				upgradeSlots = {
+					{
+						defaultModule = moduleDefNames.commweapon_beamlaser,
+						slotAllows = "basic_weapon",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+				},
+			},
+			[2] = {
+				morphBuildPower = 15,
+				morphBaseCost = morphCosts[2] * COST_MULT,
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 5
+					sharedData.rangeMult = (sharedData.rangeMult or 1) + 0.225
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynassault2_" .. GetAssaultCloneModulesString(modulesByDefID)].id
+				end,
+				upgradeSlots = {
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+				},
+			},
+			[3] = {
+				morphBuildPower = 20,
+				morphBaseCost = morphCosts[3] * COST_MULT,
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 5
+					sharedData.rangeMult = (sharedData.rangeMult or 1) + 0.3
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynassault3_" .. GetAssaultCloneModulesString(modulesByDefID)].id
+				end,
+				upgradeSlots = {
+					{
+						defaultModule = moduleDefNames.commweapon_beamlaser,
+						slotAllows = {"adv_weapon", "basic_weapon"},
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+				},
+			},
+			[4] = {
+				morphBuildPower = 25,
+				morphBaseCost = morphCosts[4] * COST_MULT,
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 5
+					sharedData.rangeMult = (sharedData.rangeMult or 1) + 0.375
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynassault4_" .. GetAssaultCloneModulesString(modulesByDefID)].id
+				end,
+				upgradeSlots = {
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+				},
+			},
+			[5] = {
+				morphBuildPower = 30,
+				morphBaseCost = morphCosts[5] * COST_MULT,
+				chassisApplicationFunction = function (modules, sharedData)
+					sharedData.autorepairRate = (sharedData.autorepairRate or 0) + 5
+					sharedData.rangeMult = (sharedData.rangeMult or 1) + 0.45
+				end,
+				morphUnitDefFunction = function(modulesByDefID)
+					return UnitDefNames["dynassault5_" .. GetAssaultCloneModulesString(modulesByDefID)].id
+				end,
+				upgradeSlots = {
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+					{
+						defaultModule = moduleDefNames.nullmodule,
+						slotAllows = "module",
+					},
+				},
+			},
+		}
+	},{
 		name = "assault",
 		humanName = "Bombard",
 		baseUnitDef = UnitDefNames and UnitDefNames["dynassault0"].id,

@@ -116,6 +116,22 @@ local chassisDefs = {
 		}
 	},
 	{
+		name = "dynriot1", --10/31
+		weapons = {
+			"commweapon_canistercannon",
+			"commweapon_canistercannon",
+			"commweapon_heavymachinegun",
+			"commweapon_flamethrower",
+			"commweapon_riotcannon",
+			"commweapon_riotcannon_napalm",
+			"commweapon_heavymachinegun",
+			"commweapon_flamethrower",
+			"commweapon_riotcannon",
+			"commweapon_riotcannon_napalm",
+			-- Space for shield
+		}
+	},
+	{
 		name = "dynknight1", -- don't care.
 		weapons = {
 			-- Aiming from earlier weapons is overridden by 
