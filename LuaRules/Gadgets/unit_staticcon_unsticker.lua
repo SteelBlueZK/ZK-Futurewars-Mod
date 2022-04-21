@@ -1,37 +1,33 @@
+if not (gadgetHandler:IsSyncedCode()) then
+	return
+end
+
 function gadget:GetInfo()
 	return {
 		name      = "Static Con Unsticker",
-		desc      = "Implements Caretaker / rejuvenator unstick.",
+		desc      = "Ensures static constructors do not get stuck on tasks outside their build range",
 		author    = "Shaman",
-		date      = "4-20-2022",
+		date      = "20 April 2022",
 		license   = "PD",
 		layer     = 0,
 		enabled   = true,
 	}
 end
 
-if not (gadgetHandler:IsSyncedCode()) then
-	return
-end
+local IterableMap = VFS.Include("LuaRules/Gadgets/Include/IterableMap.lua")
+local handled = IterableMap.New()
 
 local delay = 15
 local debug = false
 
-local handled = {} -- [f] = {[1] = unitID}
-local buildRanges = {} -- [unitDefID] = buildDistance
+local buildRangesSq = {} -- [unitDefID] = buildDistance
 
-for i = 1, #UnitDefs do
+for i = 1, #UnitDefs do  -- Find static constructors
 	local def = UnitDefs[i]
 	if def.isBuilder and def.customParams.like_structure then
-		buildRanges[i] = def.buildDistance
+		buildRangesSq[i] = def.buildDistance^2
 	end
 end
-
---[[local buildRanges = {
-	[UnitDefNames["staticrepair"].id] = UnitDefNames["staticrepair"].buildDistance,
-	[UnitDefNames["staticcon"].id] = UnitDefNames["staticcon"].buildDistance,
-	[UnitDefNames["striderhub"].id] = UnitDefNames["striderhub"].buildDistance,
-}]]
 
 -- Speedups --
 local CMD_INSERT = CMD.INSERT
@@ -50,10 +46,9 @@ local spGetUnitPosition = Spring.GetUnitPosition
 local spGetUnitDefID = Spring.GetUnitDefID
 local spGetFeaturePosition = Spring.GetFeaturePosition
 local spGetUnitTeam = Spring.GetUnitTeam
---local EMPTY = {}
 
-local function DebugEcho(str)
-	spEcho("[unit_staticcon_unsticker]: " .. str)
+local function DebugEcho(...)
+	spEcho("[unit_staticcon_unsticker]", unpack(arg))
 end
 
 local function GetDistance(unitID, targetID, isReclaim)
@@ -72,88 +67,84 @@ local function GetDistance(unitID, targetID, isReclaim)
 		if debug then DebugEcho("Target doesn't exist?") end
 		return 9999
 	end
-	return math.sqrt(((x2 - x) * (x2 - x)) + ((z2 - z) * (z2 - z)))
+	return (x2 - x)^2 + (z2 - z)^2
 end
 
 local function IsObjectCloseEnough(unitID, targetID, cmd) -- Note: build ranges are 2D usually.
-	if cmd == CMD_REPAIR and spValidUnitID(targetID) then
-		local dist = GetDistance(unitID, targetID, false)
-		if debug then
-			DebugEcho(unitID .. ": Distance: " .. dist .. " (Build Range: " .. buildRanges[spGetUnitDefID(unitID)] .. ")")
-		end
-		return dist <= buildRanges[spGetUnitDefID(unitID)]
-	elseif (cmd == CMD_RECLAIM or cmd == CMD_RESURRECT) then
-		local dist
-		if spValidFeatureID(targetID) then
-			dist = GetDistance(unitID, targetID, true)
-		else
-			dist = GetDistance(unitID, targetID, false)
-		end
-		if debug then
-			DebugEcho(unitID .. ": Distance: " .. dist .. " (Build Range: " .. buildRanges[spGetUnitDefID(unitID)] .. ")")
-		end
-		return dist <= buildRanges[spGetUnitDefID(unitID)]
-	else
-		return false
+	local isReclaim = (cmd == CMD_RECLAIM or cmd == CMD_RESURRECT)
+	local dist = GetDistance(unitID, targetID, isReclaim)
+	local buildRange = buildRangesSq[spGetUnitDefID(unitID)]
+	if debug then
+		DebugEcho(unitID, ": Distance: ", dist, " (Build Range: ", buildRange, ")")
 	end
+	return dist <= buildRange
 end
 
-local function HandleUnit(unitID, f)
-	if spValidUnitID(unitID) then
-		local _, _, unbuilt = spGetUnitIsStunned(unitID)
-		if not unbuilt then -- if caretaker is reversed built, UnitFinished should retrigger to readd it, though nobody really unbuilds caretakers.
-			local cmdID, _, cmdTag, cmdParam1, cmdParam2, cmdParam3, cmdParam4, cmdParam5 = spGetUnitCurrentCommand(unitID)
-			if cmdParam1 and spValidFeatureID(cmdParam1 - Game.maxUnits) then
-				cmdParam1 = cmdParam1 - Game.maxUnits
+--[[Some documentation with regards to this HandleUnit function:
+When patrol orders for cons encounters reclaim or repair, it sends the following cmd params:
+[1] = unitID / featureID
+[2] = the patroler's X position
+[3] = the patroler's Y position
+[4] = the patroler's Z position
+[5] = the patroler's buildrange
+A normal user added single unit reclaim would have only look like this:
+[1] = Unit / FeatureID
+OR (after finding a feature)
+[1] = unitID / featureID
+[2] = center X
+[3] = center Y
+[4] = center Z
+[5] = radius
+]]
+
+local function HandleUnit(unitID)
+	if not spValidUnitID(unitID) then
+		return
+	end
+	local cmdID, _, cmdTag, cmdParam1, cmdParam2, cmdParam3, cmdParam4, cmdParam5 = spGetUnitCurrentCommand(unitID)
+	if cmdParam1 and spValidFeatureID(cmdParam1 - Game.maxUnits) then
+		cmdParam1 = cmdParam1 - Game.maxUnits
+	end
+	if debug then DebugEcho(unitID .. ": " .. tostring(cmdID) .. ", " .. tostring(cmdParam1) .. ", " .. tostring(cmdParam2)) end
+	local range = buildRangesSq[spGetUnitDefID(unitID)]
+	if cmdID and cmdParam1 and (spValidFeatureID(cmdParam1) or spValidUnitID(cmdParam1)) then
+		if debug then DebugEcho(unitID .. ": Valid command, checking distance.") end
+		if not IsObjectCloseEnough(unitID, cmdParam1, cmdID) or (cmdID == CMD_RECLAIM and cmdParam5 and cmdParam5 == range and not GG.CheckORPForTeam(spGetUnitTeam(unitID)) and not GG.GetORPState(unitID)) then
+			if debug then DebugEcho(unitID .. ": Command dropped (Out of Range / ORP)") end
+			spGiveOrderToUnit(unitID, CMD_REMOVE, cmdTag, 0)
+			if cmdParam5 and cmdParam5 ~= range then -- this was an area command added by the user.
+				if debug then DebugEcho(unitID, cmdID, cmdParam1, cmdParam2) end
+				spGiveOrderToUnit(unitID, CMD_INSERT, {0, cmdID, CMD.OPT_SHIFT, cmdParam2, cmdParam3, cmdParam4, cmdParam5}, CMD.OPT_ALT) -- For whatever reason, when removing reclaim/repair orders from area orders, it removes the command itself. Don't ask me.
 			end
-			if debug then DebugEcho(unitID .. ": " .. tostring(cmdID) .. ", " .. tostring(cmdParam1) .. ", " .. tostring(cmdParam2)) end
-			local range = buildRanges[spGetUnitDefID(unitID)]
-			if cmdID and cmdParam1 and (spValidFeatureID(cmdParam1) or spValidUnitID(cmdParam1)) then
-				if debug then DebugEcho(unitID .. ": Valid command, checking distance.") end
-				if not IsObjectCloseEnough(unitID, cmdParam1, cmdID) or (cmdID == CMD_RECLAIM and cmdParam5 and cmdParam5 == range and not GG.CheckORPForTeam(spGetUnitTeam(unitID)) and not GG.GetORPState(unitID)) then
-					if debug then DebugEcho(unitID .. ": Command dropped (Out of Range / ORP)") end
-					spGiveOrderToUnit(unitID, CMD_REMOVE, cmdTag, 0)
-					if cmdParam5 and cmdParam5 ~= range then -- this was an area command added by the user.
-						if debug then DebugEcho("Readding area command: " .. tostring(cmdParam2) .. ", " .. tostring(cmdParam3) .. ", " .. tostring(cmdParam4) .. ", " .. tostring(cmdParam5)) end
-						spGiveOrderToUnit(unitID, CMD_INSERT, {0, cmdID, CMD.OPT_SHIFT, cmdParam2, cmdParam3, cmdParam4, cmdParam5}, CMD.OPT_ALT) -- For whatever reason, when removing reclaim/repair orders from area orders, it removes the command itself. Don't ask me.
-					end
-				end
-			elseif debug then
-				DebugEcho("Invalid command handled for " .. unitID)
-			end
-			handled[f + delay] = handled[f + delay] or {} -- check back in 15 frames.
-			handled[f + delay][#handled[f + delay] + 1] = unitID
-		elseif debug then 
-			DebugEcho(unitID .. ": Exited drop (Reverse Built)")
 		end
+	elseif debug then
+		DebugEcho("No action needed for " .. unitID)
 	end
 end
-
---[[function gadget:AllowCommand(unitID, unitDefID, unitTeam, cmdID, cmdParams)
-	if buildRanges[unitDefID] == nil or cmdID ~= CMD_RECLAIM then
-		return true
-	elseif cmdID == CMD_RECLAIM and not GG.GetORPState(unitID) and not GG.CheckORPForTeam(unitTeam) then 
-		return false
-	else
-		return true
-	end
-end]]
 
 function gadget:GameFrame(f)
-	if handled[f] then
-		for i = 1, #handled[f] do
-			if debug then DebugEcho("Check " .. handled[f][i]) end
-			HandleUnit(handled[f][i], f)
+	if f%delay == 0 then
+		for id, _ in pairs(IterableMap.Iterator(handled)) do
+			HandleUnit(id)
 		end
-		handled[f] = nil
 	end
 end
 
 function gadget:UnitFinished(unitID, unitDefID, unitTeam)
-	if buildRanges[unitDefID] then
+	if buildRangesSq[unitDefID] then
 		if debug then DebugEcho(unitID .. ": Added to check loop.") end
-		local f = spGetGameFrame() + delay
-		handled[f] = handled[f] or {}
-		handled[f][#handled[f] + 1] = unitID
+		IterableMap.Add(handled, unitID, true)
+	end
+end
+
+function gadget:UnitDestroyed(unitID, unitDefID)
+	if buildRangesSq[unitDefID] then
+		IterableMap.Remove(handled, unitID)
+	end
+end
+
+function gadget:UnitReverseBuilt(unitID, unitDefID)
+	if buildRangesSq[unitDefID] then
+		IterableMap.Remove(handled, unitID)
 	end
 end
