@@ -57,8 +57,8 @@ return {
 			CORTRUCK_ROCKET = {
 				name                    = [[Eos Tactical Cruise Missile]],
 				areaOfEffect            = 160,
+				avoidground             = false,
 				cegTag                  = [[slam_trail]],
-				collideFriendly         = false,
 				craterBoost             = 1,
 				craterMult              = 2,
 				customParams        = {

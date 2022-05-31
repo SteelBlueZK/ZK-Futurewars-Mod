@@ -61,7 +61,6 @@ return {
 			},
 		},
 		weaponDefs             = {
-	
 			fragment = {
 				name                    = [[High Explosive Warhead]],
 				areaOfEffect            = 90,
@@ -105,6 +104,7 @@ return {
 			STORM_ROCKET = {
 				name                    = [[Heavy Rocket]],
 				areaOfEffect            = 75,
+				avoidGround             = false,
 				cegTag                  = [[rocket_trail_bar_flameboosted]],
 				craterBoost             = 1,
 				craterMult              = 2,
@@ -120,19 +120,21 @@ return {
 					timeoutspawn = 1, -- Can this missile spawn its subprojectiles when it times out? OPTIONAL. Default: 1.
 					vradius1 = "-4,-1,-4,4,1,4", -- velocity that is randomly added. covers range of +-vradius. OPTIONAL. Default: 4.2
 					reveal_unit = 3,
+					cruisealt = 90,
+					cruisedist = 200,
 				},
 				damage                  = {
 					default = 600,
 				},
 				fireStarter             = 70,
-				flightTime              = 3.5,
+				flightTime              = 10,
 				impulseBoost            = 0,
 				impulseFactor           = 0.4,
 				interceptedByShieldType = 2,
 				model                   = [[wep_m_hailstorm.s3o]],
 				noSelfDamage            = true,
 				predictBoost            = 0.75,
-				range                   = 560,
+				range                   = 600,
 				reloadtime              = 7.1,
 				smokeTrail              = false,
 				soundHit                = [[weapon/missile/sabot_hit]],
@@ -140,7 +142,7 @@ return {
 				soundStart              = [[weapon/missile/missile2_fire_bass]],
 				soundStartVolume        = 7,
 				startVelocity           = 192,
-				trajectoryHeight        = 1.25,
+				trajectoryHeight        = 2.5,
 				turnrate                = 12000,
 				turret                  = true,
 				weaponType              = [[MissileLauncher]],
