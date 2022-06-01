@@ -59,6 +59,7 @@ return {
 				areaOfEffect            = 160,
 				avoidground             = false,
 				cegTag                  = [[slam_trail]],
+				collideFriendly         = false,
 				craterBoost             = 1,
 				craterMult              = 2,
 				customParams        = {
@@ -66,7 +67,7 @@ return {
 					reaim_time = 15, -- Some script bug. It does not need fast aim updates anyway.
 					light_camera_height = 2500,
 					light_color = [[1 0.8 0.2]],
-					cruisealt = 600,
+					cruisealt = 200,
 					cruisedist = 340,
 					reveal_unit = 40,
 				},

@@ -33,6 +33,7 @@ local sin = math.sin
 local cos = math.cos
 local sqrt = math.sqrt
 local max = math.max
+local atan = math.atan
 local atan2 = math.atan2
 local ceil = math.ceil
 
@@ -50,6 +51,8 @@ local spGetProjectilePosition = Spring.GetProjectilePosition
 local SetWatchWeapon = Script.SetWatchWeapon
 local spEcho = Spring.Echo
 local spGetUnitPosErrorParams = Spring.GetUnitPosErrorParams
+
+local terrainGranularity = 6
 
 -- proccess config --
 for i=1, #WeaponDefs do
@@ -172,7 +175,8 @@ end
 
 local function IsMissileCruiseDone(id) -- other gadgets can look up if the missile is done with its cruise phase.
 	--Spring.Echo("IsMissileCruiseDone: Returning: " .. tostring(missiles[id] ~= nil) .. " for " .. id)
-	return IterableMap.InMap(missiles, id)
+	local data = IterableMap.Get(missiles, id)
+	return data ~= nil
 end
 
 local function ForceUpdate(id, x, y, z)
@@ -184,8 +188,18 @@ local function ForceUpdate(id, x, y, z)
 	end
 end
 
+local function GetTargetPosition(id, allyteam)
+	local data = IterableMap.Get(missiles, id)
+	if data then
+		return GetMissileDestination(id, allyteam)
+	else
+		return nil
+	end
+end
+
 GG.ForceCruiseUpdate = ForceUpdate
 GG.GetMissileCruising = IsMissileCruiseDone
+GG.GetCruiseTarget = GetTargetPosition
 
 function gadget:ProjectileCreated(proID, proOwnerID, weaponDefID)
 	local wep = weaponDefID or spGetProjectileDefID(proID) -- needed for bursts.
@@ -216,7 +230,7 @@ function gadget:ProjectileCreated(proID, proOwnerID, weaponDefID)
 		local allyteam = spGetUnitAllyTeam(proOwnerID)
 		local _, py = spGetProjectilePosition(proID)
 		py = max(py, ty)
-		IterableMap.Add(missiles, proID, {target = target, type = type, cruising = config[wep].noascension, takeoff = not config[wep].noascension, lastknownposition = last, configid = wep, allyteam = allyteam, wantedalt = py + config[wep].altitude, updates = 0, offset = {}})
+		IterableMap.Add(missiles, proID, {target = target, altitudestayframes = 0, type = type, cruising = config[wep].noascension, takeoff = not config[wep].noascension, lastknownposition = last, configid = wep, allyteam = allyteam, wantedalt = py + config[wep].altitude, updates = 0, offset = {}})
 		if config[wep].radius then
 			ProccessOffset(wep, proID)
 		end
@@ -239,6 +253,7 @@ function gadget:GameFrame(f)
 		local missileconfig = config[projectiledef]
 		local wantedalt = data.wantedalt
 		local mindist = missileconfig.distance
+		local distance = Distance(cx, x, cz, z)
 		if data.offset.x then
 			x = x + data.offset.x
 			z = z + data.offset.z
@@ -269,8 +284,6 @@ function gadget:GameFrame(f)
 					data.cruising = true
 				end
 				if data.cruising then
-					local mindist = missileconfig.distance
-					local distance = Distance(cx, x, cz, z)
 					--spEcho("Distance to target: " .. distance .. " / " .. mindist)
 					if distance < mindist then -- final approach
 						if missileconfig.finaltracking and data.type == "unit" then
@@ -288,42 +301,74 @@ function gadget:GameFrame(f)
 				--spEcho("Successful torpedo target: " .. tostring(success))
 			end
 		else
-			local distance = Distance(cx, x, cz, z)
+			local cruiseheight = config[projectiledef].altitude
+			local originalgroundheight = spGetGroundHeight(cx, cz)
+			local wantedheight = originalgroundheight + cruiseheight
 			--spEcho("Projectile ID: " .. projectile .. "\nAlt: " .. cy .. " / " .. wantedalt .. "\nCruising: " .. tostring(data.cruising) .. "\nAscending: " .. tostring(data.takeoff) .. "\nTargetCoords: " .. x .. ", " .. y .. ", " .. z .. "\nDistance: " .. distance .. "/" .. mindist)
 			if data.takeoff then -- begin ascent phase
 				if missileconfig.ascendradius and missileconfig.ascendradius > 0 then
 					local targetx, targetz = GetFiringPoint(missileconfig.ascendradius, cx, cz, CalculateAngle(cx, cz, x, z))
 					--Spring.Echo("Aiming for " .. targetx .. "," .. targetz)
-					spSetProjectileTarget(projectile, targetx, wantedalt, targetz)
+					spSetProjectileTarget(projectile, targetx, spGetGroundHeight(targetx, targetz) + cruiseheight, targetz)
 				else
-					spSetProjectileTarget(projectile, cx, wantedalt, cz)
+					spSetProjectileTarget(projectile, cx, originalgroundheight + cruiseheight, cz)
 				end
+				--spEcho("Taking off: " .. cy .. " / " .. wantedheight)
 			end
-			if data.takeoff and ((cy >= wantedalt - 40 and not missileconfig.airlaunched) or (cy <= wantedalt + 20 and missileconfig.airlaunched)) then -- end ascent
+			if data.takeoff and ((cy >= wantedheight - 40 and not missileconfig.airlaunched) or (cy <= wantedheight + 20 and missileconfig.airlaunched)) then -- end ascent
 				data.takeoff = false
 				data.cruising = true
+				spEcho("No longer taking off")
 			end
 			if data.cruising then -- cruise phase
-				local cruiseheight = config[projectiledef].altitude
-				local vx, _, vz, v = spGetProjectileVelocity(projectile)
-				local ty = cy
+				local vx, _, vz = spGetProjectileVelocity(projectile)
+				local v = sqrt((vx * vx) + (vz * vz))
+				local ty = data.wantedalt
 				local angle = CalculateAngle(cx, cz, x, z)
-				if not missileconfig.ignoreterrain then
-					local looksteps = ceil(v/6)
-					local groundheight = spGetGroundHeight(cx, cz)
+				--spEcho("V: " .. v)
+				if not missileconfig.ignoreterrain and v > 0 then
+					local looksteps = ceil((v * 5) / terrainGranularity) + 1
+					local groundheight = originalgroundheight
+					local d = 0
 					for i = 1, looksteps do
-						local lx, lv = GetFiringPoint(i * 6, cx, cz, angle)
+						local lx, lv = GetFiringPoint(i * terrainGranularity, cx, cz, angle)
 						local gy = spGetGroundHeight(lx, lv)
-						if gy > groundheight then
+						if gy > groundheight and gy + cruiseheight > data.wantedalt then
 							groundheight = gy
+							d = i * terrainGranularity
 						end
 					end
-					spEcho("TerrainCheck:\nGroundHeight: " .. groundheight .. "\nCruiseAlt: " .. cruiseheight .. "\nWanted: " .. groundheight + cruiseheight)
-					ty = groundheight + cruiseheight
+					local t = d / v -- time it takes us to get there.
+					local eta = distance / v -- time it will take us to get to the final destination
+					if t > 0 then
+						wantedheight = groundheight + cruiseheight
+						local dy = wantedheight - cy
+						local wantedangle = atan2(dy, t)
+						_, ty = GetFiringPoint(eta, 0, cy, wantedangle) -- reframe the problem as a function of time. We want the height change over time (we don't care about positions)
+						ty = ty + wantedheight
+						--spEcho("TerrainCheck:\nGround level: " .. groundheight .. "\nCruise Height: " .. wantedheight .. "\nWanted: " .. ty)
+						data.wantedalt = ty
+						data.altitudestayframes = ceil(t) + 1
+					else
+						if data.altitudestayframes > 0 then
+							data.altitudestayframes = data.altitudestayframes - 1
+							local dy = data.wantedalt - cy
+							if dy > 0 then
+								local wantedangle = atan2(dy, data.altitudestayframes)
+								_, ty = GetFiringPoint(eta, 0, dy, wantedangle)
+								ty = ty + cy
+							else
+								ty = cy
+							end
+							--spEcho("HoldTerrain: " .. ty)
+						else
+							local wantedheight = groundheight + cruiseheight
+							local wantedangle = atan((wantedheight - cy), eta)
+							_, ty = GetFiringPoint(eta, 0, cy, wantedangle)
+							data.wantedalt = wantedheight
+						end
+					end
 				end
-				local tx, tz = GetFiringPoint(max(v, 12), cx, cz, angle)
-				spEcho("Setting target to: " .. tostring(tx), ty, tz)
-				spSetProjectileTarget(projectile, tx, ty, tz)
 				if distance <= mindist then -- end of cruise phase
 					data.cruising = false
 					if missileconfig.track and missileconfig.finaltracking and data.type == "unit" then
@@ -332,6 +377,9 @@ function gadget:GameFrame(f)
 						spSetProjectileTarget(projectile, x, y, z)
 					end
 					IterableMap.Remove(missiles, projectile)
+				else
+					--spEcho("Setting target to: " .. x, ty, z)
+					spSetProjectileTarget(projectile, x, ty, z)
 				end
 			end
 		end
