@@ -1,5 +1,5 @@
 return {
-	name='Future Wars (Leoj)',
+	name='Leoj Future Wars',
 	description='Zero-K',
 	version='Stable',
 	shortname='ZKFW',
